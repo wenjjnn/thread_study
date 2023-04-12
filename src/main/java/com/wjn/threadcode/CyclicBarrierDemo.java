@@ -20,7 +20,7 @@ public class CyclicBarrierDemo {
         @Override
         public void run() {
             try {
-                //等待所有士兵到齐
+                //等待所有士兵到齐，集合完毕意味着CyclicBarrier的一次计数完成
                 cyclic.await();
                 doWork();
                 //等待所有士兵完成工作
@@ -64,6 +64,7 @@ public class CyclicBarrierDemo {
         final  int N = 10;
         Thread[] allSoldier = new Thread[N];
         boolean flag = false;
+        // 设置计数器为10，要求在计数器达到指标时，执行BarrierRun的run()方法
         CyclicBarrier cyclic = new CyclicBarrier(N, new BarrierRun(flag, N));
         System.out.println("集合队伍!");
         for (int i = 0;i < N; ++i) {

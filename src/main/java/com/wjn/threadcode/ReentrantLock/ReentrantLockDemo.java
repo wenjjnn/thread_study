@@ -1,4 +1,4 @@
-package com.wjn.threadcode;
+package com.wjn.threadcode.ReentrantLock;
 
 import java.util.concurrent.locks.ReentrantLock;
 
