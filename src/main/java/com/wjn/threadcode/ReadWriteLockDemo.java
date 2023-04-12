@@ -6,6 +6,7 @@ package com.wjn.threadcode;
  */
 
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -42,40 +43,76 @@ public class ReadWriteLockDemo {
         }
     }
 
+    static class readRunnable implements Runnable {
+        private CountDownLatch latch;
+        private ReadWriteLockDemo demo;
+
+        public readRunnable(ReadWriteLockDemo demo,CountDownLatch latch) {
+            this.latch = latch;
+            this.demo = demo;
+        }
+
+        @Override
+        public void run() {
+            try {
+                demo.handleRead(readLock);
+                // 不用读写锁，需要20s才能结束
+//                demo.handleRead(lock);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                latch.countDown();
+            }
+        }
+    }
+
+
+    static class writeRunnable implements Runnable {
+        private CountDownLatch latch;
+        private ReadWriteLockDemo demo;
+
+        public writeRunnable(ReadWriteLockDemo demo,CountDownLatch latch) {
+            this.latch = latch;
+            this.demo = demo;
+        }
+
+        @Override
+        public void run() {
+            try {
+                // 用读写锁，2s可结束
+                demo.handleWrite(writeLock, new Random().nextInt());
+                // 不用读写锁，需要20s才能结束
+//                demo.handleWrite(lock, new Random().nextInt());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                latch.countDown();
+            }
+        }
+    }
+
     public static void main(String[] args) {
         ReadWriteLockDemo readWriteLockDemo = new ReadWriteLockDemo();
-        Runnable readRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    readWriteLockDemo.handleRead(readLock);
-//                    readWriteLockDemo.handleRead(lock);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
+        CountDownLatch countDownLatch = new CountDownLatch(20);
 
-        Runnable writeRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    readWriteLockDemo.handleWrite(writeLock, new Random().nextInt());
-//                    readWriteLockDemo.handleWrite(lock, new Random().nextInt());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
+        long beginTime = System.currentTimeMillis();
 
         for (int i = 0; i < 19; i++) {
-            new Thread(readRunnable).start();
+            new Thread(new readRunnable(readWriteLockDemo, countDownLatch)).start();
         }
 
         for (int i = 18; i < 20; i++) {
-            new Thread(writeRunnable).start();
+            new Thread(new writeRunnable(readWriteLockDemo, countDownLatch)).start();
         }
+
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("耗时:" + (endTime - beginTime));
 
     }
 
